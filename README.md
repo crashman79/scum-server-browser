@@ -2,102 +2,141 @@
 
 A lightweight desktop application for tracking and pinging SCUM game servers with real-time latency monitoring.
 
-## Features
+**Built with PyQt6 | Cross-Platform | Self-Contained | No Dependencies**
 
-✨ **Core Features**
-- 🌐 Browse SCUM servers from BattleMetrics API
-- ⏱️ Real-time ping latency measurement
-- ⭐ Mark and filter favorite servers
-- 📊 View ping history with timestamps
-- 🔄 Auto-refresh server list at configurable intervals
-- 🔍 Search servers by name
-- 📈 Color-coded latency indicators (green <100ms, orange 100-200ms, red >200ms)
-- 🎨 Light/Dark/System theme support
-- 💾 Filter preferences automatically saved
+## 🚀 Quick Start
 
-## Installation & Usage
+### Download & Run (Recommended)
 
-### Option 1: Standalone Executable (Recommended)
+No Python installation needed! Download the executable for your platform:
 
-**No Python installation required!**
+- **Linux**: Download from [Releases](https://github.com/crashman79/scum-server-browser/releases)
+  ```bash
+  tar -xzf SCUM_Server_Browser-Linux.tar.gz
+  ./SCUM_Server_Browser
+  ```
 
-Download the pre-built executable for your platform:
-- **Linux**: `SCUM_Server_Browser` (146 MB)
-- **Windows**: `SCUM_Server_Browser.exe` (146 MB)
+- **Windows**: Download from [Releases](https://github.com/crashman79/scum-server-browser/releases)
+  ```
+  Double-click SCUM_Server_Browser.exe
+  ```
 
-Just download and run - everything is included! See [DISTRIBUTION.md](DISTRIBUTION.md) for details.
+That's it! Everything is bundled inside the executable.
 
-### Option 2: From Source (Requires Python)
+### Or Run From Source
 
-**Prerequisites:**
-- Python 3.8+
+If you have Python 3.8+:
 
-**Installation:**
 ```bash
 pip install -r requirements.txt
 python -m scum_tracker
 ```
 
-## Building Standalone Executables
+## ✨ Features
 
-To create your own standalone executables for distribution:
+- 🌐 **Browse SCUM Servers** - Real-time list from BattleMetrics API
+- ⏱️ **Ping Monitoring** - Measure latency to any server
+- ⭐ **Favorites** - Mark and filter your favorite servers
+- 📊 **Ping History** - Track latency trends over time
+- 🔍 **Search & Filter** - Find servers by name, region, or player count
+- 🎨 **Themes** - Light, Dark, or System theme support
+- 💾 **Persistent Settings** - Filters and preferences saved automatically
+- 🚀 **Async Operations** - Responsive UI during network operations
+
+## 📋 How to Use
+
+1. **Browse Servers** - Application loads SCUM servers on startup
+2. **Search** - Use the search box to find servers by name
+3. **Filter** - Filter by region, ping, or player count
+4. **Ping** - Right-click any server to ping it
+5. **Favorite** - Click the ⭐ to mark servers as favorites
+6. **Auto-Refresh** - Servers refresh automatically (configurable interval)
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+scum-browser/
+├── .github/workflows/
+│   └── build-windows.yml    # Automated Windows build (GitHub Actions)
+├── scum_tracker/
+│   ├── __init__.py           # App initialization & entry point
+│   ├── __main__.py           # CLI entry point
+│   ├── assets/
+│   │   └── app_icon.png      # Application icon
+│   ├── models/
+│   │   ├── server.py         # GameServer & PingRecord data models
+│   │   └── database.py       # SQLite database (favorites, history, settings)
+│   ├── services/
+│   │   ├── server_manager.py # BattleMetrics API client
+│   │   ├── ping_service.py   # Ping functionality (ICMP, TCP fallback)
+│   │   ├── location_analyzer.py # Server location detection
+│   │   └── theme_service.py  # Light/Dark theme management
+│   └── ui/
+│       └── main_window.py    # PyQt6 main window & application logic
+├── build_linux.sh            # Build script for Linux executable
+├── build_windows.bat         # Build script for Windows executable
+├── SCUM_Server_Browser.spec  # PyInstaller configuration
+├── requirements.txt          # Runtime dependencies
+├── requirements-build.txt    # Build dependencies (PyInstaller)
+└── README.md                 # This file
+```
+
+### Building Standalone Executables
+
+To create self-contained executables:
 
 **Linux:**
 ```bash
 chmod +x build_linux.sh
 ./build_linux.sh
+# Output: dist/SCUM_Server_Browser (146 MB)
 ```
 
 **Windows:**
 ```cmd
 build_windows.bat
+REM Output: dist\SCUM_Server_Browser.exe (146 MB)
 ```
 
-See [BUILD.md](BUILD.md) for detailed build instructions.
+Automated builds also run on GitHub Actions - check the [Actions](https://github.com/crashman79/scum-server-browser/actions) tab for the latest Windows executable.
 
-## Project Structure
+### Data Storage
 
-```
-scum-browser/
-├── scum_tracker/
-│   ├── __init__.py           # Application entry point
-│   ├── models/
-│   │   ├── server.py         # GameServer and PingRecord data models
-│   │   └── database.py       # SQLite database management
-│   ├── services/
-│   │   ├── server_manager.py # BattleMetrics API integration
-│   │   └── ping_service.py   # Ping functionality
-│   └── ui/
-│       └── main_window.py    # Main PyQt6 application window
-├── requirements.txt
-└── README.md
-```
+- **Location**: `~/.scum_tracker/data.db` (SQLite database)
+- **Tables**:
+  - `favorites` - Marked servers
+  - `ping_history` - Ping records with timestamps
+  - `settings` - User preferences (filters, theme, etc.)
 
-## Data Storage
+## 🤝 Contributing
 
-- Favorites and ping history are stored in `~/.scum_tracker/data.db`
-- SQLite database with two tables: `favorites` and `ping_history`
+Found a bug or have a feature request? Please open an [Issue](https://github.com/crashman79/scum-server-browser/issues).
 
-## Features in Detail
+Want to contribute code? Feel free to fork and submit a Pull Request!
 
-### Server Monitoring
-- Fetch server list from BattleMetrics API
-- Display player count, map, region information
-- Real-time ping with visual color indicators
+## 📝 License
 
-### Favorites Management
-- Click ★ to mark/unmark favorite servers
-- Filter to show only favorite servers
-- Favorites persist across sessions
+This project is open source and available under the MIT License.
 
-### Ping History
-- Automatic recording of all pings
-- View detailed history for any server
-- Timestamps for trend analysis
+## 🙏 Credits
 
-### Auto-Refresh
-- Configurable refresh interval (5-300 seconds)
-- Background refresh with server updates
+- Server data provided by [BattleMetrics](https://www.battlemetrics.com)
+- Built with [PyQt6](https://www.riverbankcomputing.com/software/pyqt/)
+- Packaged with [PyInstaller](https://pyinstaller.org/)
+
+## ⚙️ System Requirements
+
+### For Executable Users
+- **Linux**: Any x86_64 system, 512 MB RAM, 300 MB disk space
+- **Windows**: Windows 7 SP1+, 512 MB RAM, 300 MB disk space
+- **No Python installation required**
+
+### For Developers
+- Python 3.8+
+- pip (Python package manager)
+- Virtual environment (recommended)
 - Manual refresh button available
 
 ## Troubleshooting
