@@ -29,6 +29,8 @@ Notes:
 - You can add missing servers manually via the MANUAL_SERVERS list
 """
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from typing import List
 from scum_tracker.models.server import GameServer
 import uuid
@@ -39,6 +41,41 @@ class ServerManager:
 
     BATTLEMETRICS_API = "https://api.battlemetrics.com/servers"
     GAME_ID = "scum"
+    
+    # Shared session with connection pooling for better performance on Windows
+    _session = None
+    
+    @classmethod
+    def _get_session(cls):
+        """Get or create a shared requests session with connection pooling and retry logic"""
+        if cls._session is None:
+            cls._session = requests.Session()
+            
+            # Configure retry strategy
+            retry_strategy = Retry(
+                total=3,  # Total number of retries
+                backoff_factor=0.5,  # Wait 0.5s, 1s, 2s between retries
+                status_forcelist=[429, 500, 502, 503, 504],  # Retry on these status codes
+                allowed_methods=["GET"]  # Only retry GET requests
+            )
+            
+            # Mount adapter with connection pooling
+            adapter = HTTPAdapter(
+                max_retries=retry_strategy,
+                pool_connections=10,  # Number of connection pools to cache
+                pool_maxsize=20  # Max number of connections in the pool
+            )
+            
+            cls._session.mount("http://", adapter)
+            cls._session.mount("https://", adapter)
+            
+            # Set default headers
+            cls._session.headers.update({
+                'User-Agent': 'SCUM-Server-Browser/1.0',
+                'Accept': 'application/json'
+            })
+        
+        return cls._session
     
     # Version mapping from BattleMetrics internal version to in-game display version
     # Based on official SCUM servers:
@@ -96,14 +133,15 @@ class ServerManager:
         """Fetch servers from BattleMetrics API with pagination using cursor-based pagination"""
         try:
             servers = []
+            session = ServerManager._get_session()
             url = f"{ServerManager.BATTLEMETRICS_API}?filter[game]={ServerManager.GAME_ID}&page[size]=100"
             page_count = 0
             max_pages = 10  # Limit to ~1000 servers to keep load times reasonable
             
             while url and page_count < max_pages:
-                response = requests.get(
+                response = session.get(
                     url,
-                    timeout=10
+                    timeout=15  # Increased timeout for better reliability on Windows
                 )
                 response.raise_for_status()
                 

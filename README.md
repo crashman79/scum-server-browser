@@ -105,13 +105,26 @@ REM Output: dist\SCUM_Server_Browser.exe (146 MB)
 
 Automated builds also run on GitHub Actions - check the [Actions](https://github.com/crashman79/scum-server-browser/actions) tab for the latest Windows executable.
 
+### Performance Optimizations
+
+The application includes several Windows-specific optimizations for better performance:
+
+- **Connection Pooling**: HTTP requests use connection pooling to reduce latency
+- **Socket Optimizations**: TCP sockets configured for faster ping operations
+- **Database Tuning**: SQLite configured with WAL mode for better concurrency
+- **Thread Management**: Optimized cleanup for reliable operation on Windows
+- **High-DPI Support**: Automatic scaling on high-resolution displays
+
+For detailed information, see [WINDOWS_OPTIMIZATIONS.md](WINDOWS_OPTIMIZATIONS.md).
+
 ### Data Storage
 
 - **Location**: `~/.scum_tracker/data.db` (SQLite database)
 - **Tables**:
   - `favorites` - Marked servers
-  - `ping_history` - Ping records with timestamps
+  - `ping_history` - Ping records with timestamps (7-day retention)
   - `settings` - User preferences (filters, theme, etc.)
+- **Performance**: Indexed queries, WAL journaling mode
 
 ## 🤝 Contributing
 
@@ -133,34 +146,40 @@ This project is open source and available under the MIT License.
 
 ### For Executable Users
 - **Linux**: Any x86_64 system, 512 MB RAM, 300 MB disk space
-- **Windows**: Windows 7 SP1+, 512 MB RAM, 300 MB disk space
+- **Windows**: Windows 7 SP1+ (Windows 10/11 recommended), 512 MB RAM, 300 MB disk space
 - **No Python installation required**
 
 ### For Developers
 - Python 3.8+
 - pip (Python package manager)
 - Virtual environment (recommended)
-- Manual refresh button available
 
 ## Troubleshooting
 
 **ImportError: No module named 'PyQt6'**
 ```bash
-pip install PyQt6
+pip install -r requirements.txt
 ```
 
+**Slow performance on Windows**
+- Ensure Windows Firewall allows the application
+- Check if antivirus is scanning network traffic (add exception)
+- Close other applications using network resources
+
 **Ping not working**
-- On Linux, ping may require elevated permissions
-- On Windows, ensure ICMP is enabled in firewall
+- TCP connection method used (no admin rights needed)
+- Check firewall settings if all pings fail
+- Some servers may have connection restrictions
 
 **Database issues**
 - Database file is stored in `~/.scum_tracker/data.db`
 - Safe to delete to reset favorites and history
+- Automatic cleanup after 7 days of ping history
 
 ## Future Enhancements
 
-- [ ] Filter by region/map
-- [ ] Ping statistics (average, min, max)
+- [ ] Additional server filters (game mode, rules)
+- [ ] Real-time server monitoring
 - [ ] Export server data to CSV
 - [ ] Server status notifications
 - [ ] Custom server list import

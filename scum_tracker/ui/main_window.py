@@ -386,21 +386,32 @@ class MainWindow(QMainWindow):
         # Save filter settings before closing
         self._save_filter_settings()
         
+        # Stop display update timer
+        if hasattr(self, 'display_update_timer'):
+            self.display_update_timer.stop()
+        
         # Stop and wait for display worker thread to finish
         if self.display_worker and self.display_worker.isRunning():
-            self.display_worker.quit()
-            self.display_worker.wait(timeout=2000)  # Wait up to 2 seconds
+            self.display_worker.terminate()  # Force terminate if needed
+            if not self.display_worker.wait(timeout=1000):  # Wait 1 second
+                print("Warning: Display worker did not terminate cleanly")
         
-        # Stop and wait for ping workers
-        for worker in self.ping_workers:
-            if worker and worker.isRunning():
-                worker.quit()
-                worker.wait(timeout=2000)
+        # Stop and wait for ping workers with proper cleanup
+        active_workers = [w for w in self.ping_workers if w and w.isRunning()]
+        for worker in active_workers:
+            worker.terminate()
+        
+        # Wait for all workers to finish
+        for worker in active_workers:
+            worker.wait(timeout=500)  # Shorter timeout per worker
+        
+        # Clear worker lists
+        self.ping_workers.clear()
         
         # Stop fetch worker if running
         if self.fetch_worker and self.fetch_worker.isRunning():
-            self.fetch_worker.quit()
-            self.fetch_worker.wait(timeout=2000)
+            self.fetch_worker.terminate()
+            self.fetch_worker.wait(timeout=1000)
         
         super().closeEvent(event)
 
@@ -917,16 +928,23 @@ class MainWindow(QMainWindow):
     
     def _start_pinging(self):
         """Start pinging all servers in batches"""
-        # Ping servers in batches (max 10 concurrent pings to avoid overwhelming the system)
+        # Adjust batch size based on OS - Windows benefits from smaller batches
+        import platform
+        batch_size = 8 if platform.system() == 'Windows' else 10
+        
+        # Ping servers in batches to avoid overwhelming the system
         self.total_pings = len(self.servers)
         self.pings_completed = 0
-        self._ping_batch(0, 10)
+        self._ping_batch(0, batch_size)
         
         # Don't use periodic updates - just wait for all pings to complete then rebuild table once
 
     def _ping_batch(self, start_idx: int, batch_size: int):
         """Ping a batch of servers"""
         end_idx = min(start_idx + batch_size, len(self.servers))
+        
+        # Clean up completed workers before starting new batch (helps on Windows)
+        self.ping_workers = [w for w in self.ping_workers if w.isRunning()]
         
         for i in range(start_idx, end_idx):
             server = self.servers[i]
@@ -936,8 +954,12 @@ class MainWindow(QMainWindow):
             self.ping_workers.append(worker)
         
         # Schedule next batch after a short delay if there are more servers
+        # Longer delay on Windows for better stability
+        import platform
+        delay = 150 if platform.system() == 'Windows' else 100
+        
         if end_idx < len(self.servers):
-            QTimer.singleShot(100, lambda: self._ping_batch(end_idx, batch_size))
+            QTimer.singleShot(delay, lambda: self._ping_batch(end_idx, batch_size))
 
     def _on_ping_completed(self, server_id: str, latency: int, success: bool):
         """Handle ping completion"""
