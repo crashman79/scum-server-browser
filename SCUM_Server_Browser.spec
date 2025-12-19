@@ -3,14 +3,18 @@
 PyInstaller spec file for SCUM Server Browser
 Builds a self-contained executable for Windows and Linux
 """
+from PyInstaller.utils.hooks import collect_all, collect_submodules
+
+# Collect all PyQt6 data, binaries, and hidden imports
+pyqt6_datas, pyqt6_binaries, pyqt6_hiddenimports = collect_all('PyQt6')
 
 a = Analysis(
     ['scum_tracker/__main__.py'],
     pathex=[],
-    binaries=[],
+    binaries=pyqt6_binaries,
     datas=[
         ('scum_tracker/assets', 'scum_tracker/assets'),
-    ],
+    ] + pyqt6_datas,
     hiddenimports=[
         'PyQt6',
         'PyQt6.QtCore',
@@ -22,7 +26,7 @@ a = Analysis(
         'sqlite3',
         'icmplib',
         'aiohttp',
-    ],
+    ] + pyqt6_hiddenimports + collect_submodules('PyQt6'),
     hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=[],

@@ -1,0 +1,138 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+      
+      - name: Build executable
+        run: python -m PyInstaller SCUM_Server_Browser.spec
+      
+      - name: Create distribution package
+        run: |
+          cd dist
+          Compress-Archive -Path SCUM_Server_Browser.exe -DestinationPath SCUM_Server_Browser-Windows.zip
+          cd ..
+      
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            dist/SCUM_Server_Browser.exe
+            dist/SCUM_Server_Browser-Windows.zip
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+      
+      - name: Build executable
+        run: python -m PyInstaller SCUM_Server_Browser.spec
+      
+      - name: Create distribution package
+        run: |
+          cd dist
+          tar -czf SCUM_Server_Browser-Linux.tar.gz SCUM_Server_Browser
+          sha256sum SCUM_Server_Browser-Linux.tar.gz > SCUM_Server_Browser-Linux.sha256
+          cd ..
+      
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            dist/SCUM_Server_Browser-Linux.tar.gz
+            dist/SCUM_Server_Browser-Linux.sha256
+
+  release:
+    name: Create Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: dist-windows
+      
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: dist-linux
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist-windows/SCUM_Server_Browser.exe
+            dist-windows/SCUM_Server_Browser-Windows.zip
+            dist-linux/SCUM_Server_Browser-Linux.tar.gz
+            dist-linux/SCUM_Server_Browser-Linux.sha256
+          body: |
+            ## SCUM Server Browser Release
+            
+            ### Downloads
+            
+            **Windows:**
+            - `SCUM_Server_Browser.exe` - Standalone executable (double-click to run)
+            - `SCUM_Server_Browser-Windows.zip` - Zipped executable
+            
+            **Linux:**
+            - `SCUM_Server_Browser-Linux.tar.gz` - Standalone executable (extract and run)
+            - `SCUM_Server_Browser-Linux.sha256` - Checksum for verification
+            
+            ### Installation
+            
+            **Windows:**
+            1. Download `SCUM_Server_Browser.exe`
+            2. Double-click to run
+            
+            **Linux:**
+            ```bash
+            tar -xzf SCUM_Server_Browser-Linux.tar.gz
+            ./SCUM_Server_Browser
+            ```
+            
+            No Python installation required - everything is bundled!
+            
+            ### What's New
+            See commit history for changes in this release.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
