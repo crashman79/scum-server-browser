@@ -12,8 +12,10 @@ from PyQt6.QtGui import QFont, QColor, QAction, QPixmap, QPainter, QPen, QBrush,
 from functools import cmp_to_key
 from datetime import datetime
 from typing import List
+import matplotlib
+matplotlib.use('Qt5Agg')  # Set backend before importing pyplot
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from scipy.interpolate import make_interp_spline
 import numpy as np
@@ -1310,19 +1312,20 @@ class MainWindow(QMainWindow):
         
         layout = QVBoxLayout()
         
-        if history:
-            # Extract latency values and timestamps (filter out failed pings)
-            timestamps = []
-            latencies = []
-            for record in history:
-                if record.latency > 0:
-                    timestamps.append(record.timestamp)
-                    latencies.append(record.latency)
-            
-            if latencies:
-                # Create figure and plot line graph
-                fig = Figure(figsize=(8, 5), dpi=100)
-                ax = fig.add_subplot(111)
+        try:
+            if history:
+                # Extract latency values and timestamps (filter out failed pings)
+                timestamps = []
+                latencies = []
+                for record in history:
+                    if record.latency > 0:
+                        timestamps.append(record.timestamp)
+                        latencies.append(record.latency)
+                
+                if latencies:
+                    # Create figure and plot line graph
+                    fig = Figure(figsize=(8, 5), dpi=100)
+                    ax = fig.add_subplot(111)
                 
                 # Get theme colors based on current theme
                 if self.theme_service.current_theme == Theme.LIGHT:
@@ -1404,6 +1407,12 @@ class MainWindow(QMainWindow):
             text_edit = QTextEdit()
             text_edit.setReadOnly(True)
             text_edit.setText("No ping history available")
+            layout.addWidget(text_edit)
+        
+        except Exception as e:
+            text_edit = QTextEdit()
+            text_edit.setReadOnly(True)
+            text_edit.setText(f"Error displaying graph: {str(e)}\n\nPlease check if matplotlib is properly installed.")
             layout.addWidget(text_edit)
         
         dialog.setLayout(layout)

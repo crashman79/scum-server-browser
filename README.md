@@ -4,6 +4,9 @@ A lightweight desktop application for tracking and pinging SCUM game servers wit
 
 **Built with PyQt6 | Cross-Platform | Self-Contained | No Dependencies**
 
+![SCUM Server Browser - Dark Theme](screenshots/screenshot-dark.png)
+*SCUM Server Browser running on Linux with dark theme*
+
 ## 🚀 Quick Start
 
 ### Download & Run (Recommended)
