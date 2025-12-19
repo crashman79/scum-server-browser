@@ -38,7 +38,7 @@ a = Analysis(
         'sqlite3',
         'matplotlib',
         'matplotlib.pyplot',
-        'matplotlib.backends.backend_qt5agg',
+        'matplotlib.backends.backend_qtagg',
         'matplotlib.figure',
         'scipy',
         'scipy.interpolate',
