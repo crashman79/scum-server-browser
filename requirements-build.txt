@@ -1,0 +1,2 @@
+# Additional dependencies for building standalone executables
+PyInstaller>=6.10.0

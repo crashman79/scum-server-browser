@@ -1,0 +1,22 @@
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.Python
+venv/
+env/
+.env
+.vscode/
+.idea/
+*.log
+.DS_Store
+~/.scum_tracker/
+# Distribution packages (large files - use GitHub Releases instead)
+SCUM_Server_Browser-Linux.tar.gz
+SCUM_Server_Browser-Linux.sha256
+SCUM_Server_Browser-Windows.zip
+SCUM_Server_Browser-Windows.exe
+*.tar.gz
+*.zip
+*.exe
