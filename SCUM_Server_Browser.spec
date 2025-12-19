@@ -5,16 +5,28 @@ Builds a self-contained executable for Windows and Linux
 """
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
-# Collect all PyQt6 data, binaries, and hidden imports
+# Collect all PyQt6 components (Python bindings)
 pyqt6_datas, pyqt6_binaries, pyqt6_hiddenimports = collect_all('PyQt6')
+
+# Collect Qt libraries (DLLs on Windows, .so on Linux)
+try:
+    qt6_datas, qt6_binaries, qt6_hiddenimports = collect_all('PyQt6.Qt6')
+except:
+    qt6_datas, qt6_binaries, qt6_hiddenimports = [], [], []
+
+# Collect SIP bindings
+try:
+    sip_datas, sip_binaries, sip_hiddenimports = collect_all('PyQt6.sip')
+except:
+    sip_datas, sip_binaries, sip_hiddenimports = [], [], []
 
 a = Analysis(
     ['scum_tracker/__main__.py'],
     pathex=[],
-    binaries=pyqt6_binaries,
+    binaries=pyqt6_binaries + qt6_binaries + sip_binaries,
     datas=[
         ('scum_tracker/assets', 'scum_tracker/assets'),
-    ] + pyqt6_datas,
+    ] + pyqt6_datas + qt6_datas + sip_datas,
     hiddenimports=[
         'PyQt6',
         'PyQt6.QtCore',
@@ -26,7 +38,14 @@ a = Analysis(
         'sqlite3',
         'icmplib',
         'aiohttp',
-    ] + pyqt6_hiddenimports + collect_submodules('PyQt6'),
+        'matplotlib',
+        'matplotlib.pyplot',
+        'matplotlib.backends.backend_qt5agg',
+        'matplotlib.figure',
+        'scipy',
+        'scipy.interpolate',
+        'numpy',
+    ] + pyqt6_hiddenimports + qt6_hiddenimports + sip_hiddenimports + collect_submodules('PyQt6'),
     hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=[],
