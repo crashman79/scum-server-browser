@@ -36,8 +36,6 @@ a = Analysis(
         'PyQt6.sip',
         'requests',
         'sqlite3',
-        'icmplib',
-        'aiohttp',
         'matplotlib',
         'matplotlib.pyplot',
         'matplotlib.backends.backend_qt5agg',

@@ -3,10 +3,6 @@
 # Core Dependencies
 PyQt6>=6.6.1
 requests>=2.31.0
-icmplib>=3.0.3
-
-# Optional for better async support
-aiohttp>=3.9.1
 
 # Charts and visualization
 matplotlib>=3.8.0
