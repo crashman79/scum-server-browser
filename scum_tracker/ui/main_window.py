@@ -1326,88 +1326,88 @@ class MainWindow(QMainWindow):
                     # Create figure and plot line graph
                     fig = Figure(figsize=(8, 5), dpi=100)
                     ax = fig.add_subplot(111)
-                
-                # Get theme colors based on current theme
-                if self.theme_service.current_theme == Theme.LIGHT:
-                    is_dark = False
-                elif self.theme_service.current_theme == Theme.DARK:
-                    is_dark = True
-                else:  # SYSTEM
-                    try:
-                        import darkdetect
-                        is_dark = darkdetect.isDark()
-                    except Exception:
+                    
+                    # Get theme colors based on current theme
+                    if self.theme_service.current_theme == Theme.LIGHT:
                         is_dark = False
-                
-                # Set figure and axes background colors based on theme
-                if is_dark:
-                    fig_bg_color = '#1e1e1e'
-                    ax_bg_color = '#2d2d2d'
-                    text_color = '#e0e0e0'
-                    line_color = '#4ab8f0'  # Light blue for dark theme
+                    elif self.theme_service.current_theme == Theme.DARK:
+                        is_dark = True
+                    else:  # SYSTEM
+                        try:
+                            import darkdetect
+                            is_dark = darkdetect.isDark()
+                        except Exception:
+                            is_dark = False
+                    
+                    # Set figure and axes background colors based on theme
+                    if is_dark:
+                        fig_bg_color = '#1e1e1e'
+                        ax_bg_color = '#2d2d2d'
+                        text_color = '#e0e0e0'
+                        line_color = '#4ab8f0'  # Light blue for dark theme
+                    else:
+                        fig_bg_color = 'white'
+                        ax_bg_color = '#f9f9f9'
+                        text_color = '#000000'
+                        line_color = '#0078d4'  # Dark blue for light theme
+                    
+                    fig.patch.set_facecolor(fig_bg_color)
+                    ax.set_facecolor(ax_bg_color)
+                    
+                    # Apply moving average to smooth the data
+                    window_size = max(5, len(latencies) // 20)  # Adaptive window size
+                    averaged_latencies = []
+                    for i in range(len(latencies)):
+                        start = max(0, i - window_size // 2)
+                        end = min(len(latencies), i + window_size // 2 + 1)
+                        avg = sum(latencies[start:end]) / (end - start)
+                        averaged_latencies.append(avg)
+                    
+                    x = np.arange(len(averaged_latencies))
+                    y = np.array(averaged_latencies)
+                    
+                    # Create spline with smoothing on the averaged data
+                    spl = make_interp_spline(x, y, k=3)
+                    x_smooth = np.linspace(x.min(), x.max(), 300)
+                    y_smooth = spl(x_smooth)
+                    
+                    # Plot the smooth curve with theme color
+                    ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
+                    
+                    # Normalize y-axis so small variations don't create drastic jumps
+                    min_latency = min(latencies)
+                    max_latency = max(latencies)
+                    latency_range = max_latency - min_latency
+                    # Add 20% padding on both sides for better visualization
+                    padding = max(latency_range * 0.2, 5)  # At least 5ms padding
+                    ax.set_ylim(min_latency - padding, max_latency + padding)
+                    
+                    # Add labels and title with theme colors
+                    ax.set_xlabel('Time (samples)', fontsize=11, color=text_color)
+                    ax.set_ylabel('Latency (ms)', fontsize=11, color=text_color)
+                    ax.set_title('Ping Latency Over Time', fontsize=12, fontweight='bold', color=text_color)
+                    ax.grid(True, alpha=0.3, color=text_color)
+                    
+                    # Style axis ticks and spines
+                    ax.tick_params(colors=text_color)
+                    for spine in ax.spines.values():
+                        spine.set_edgecolor(text_color)
+                    
+                    fig.tight_layout()
+                    
+                    # Embed matplotlib figure in PyQt6
+                    canvas = FigureCanvas(fig)
+                    layout.addWidget(canvas)
                 else:
-                    fig_bg_color = 'white'
-                    ax_bg_color = '#f9f9f9'
-                    text_color = '#000000'
-                    line_color = '#0078d4'  # Dark blue for light theme
-                
-                fig.patch.set_facecolor(fig_bg_color)
-                ax.set_facecolor(ax_bg_color)
-                
-                # Apply moving average to smooth the data
-                window_size = max(5, len(latencies) // 20)  # Adaptive window size
-                averaged_latencies = []
-                for i in range(len(latencies)):
-                    start = max(0, i - window_size // 2)
-                    end = min(len(latencies), i + window_size // 2 + 1)
-                    avg = sum(latencies[start:end]) / (end - start)
-                    averaged_latencies.append(avg)
-                
-                x = np.arange(len(averaged_latencies))
-                y = np.array(averaged_latencies)
-                
-                # Create spline with smoothing on the averaged data
-                spl = make_interp_spline(x, y, k=3)
-                x_smooth = np.linspace(x.min(), x.max(), 300)
-                y_smooth = spl(x_smooth)
-                
-                # Plot the smooth curve with theme color
-                ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
-                
-                # Normalize y-axis so small variations don't create drastic jumps
-                min_latency = min(latencies)
-                max_latency = max(latencies)
-                latency_range = max_latency - min_latency
-                # Add 20% padding on both sides for better visualization
-                padding = max(latency_range * 0.2, 5)  # At least 5ms padding
-                ax.set_ylim(min_latency - padding, max_latency + padding)
-                
-                # Add labels and title with theme colors
-                ax.set_xlabel('Time (samples)', fontsize=11, color=text_color)
-                ax.set_ylabel('Latency (ms)', fontsize=11, color=text_color)
-                ax.set_title('Ping Latency Over Time', fontsize=12, fontweight='bold', color=text_color)
-                ax.grid(True, alpha=0.3, color=text_color)
-                
-                # Style axis ticks and spines
-                ax.tick_params(colors=text_color)
-                for spine in ax.spines.values():
-                    spine.set_edgecolor(text_color)
-                
-                fig.tight_layout()
-                
-                # Embed matplotlib figure in PyQt6
-                canvas = FigureCanvas(fig)
-                layout.addWidget(canvas)
+                    text_edit = QTextEdit()
+                    text_edit.setReadOnly(True)
+                    text_edit.setText("No successful ping records available")
+                    layout.addWidget(text_edit)
             else:
                 text_edit = QTextEdit()
                 text_edit.setReadOnly(True)
-                text_edit.setText("No successful ping records available")
+                text_edit.setText("No ping history available")
                 layout.addWidget(text_edit)
-        else:
-            text_edit = QTextEdit()
-            text_edit.setReadOnly(True)
-            text_edit.setText("No ping history available")
-            layout.addWidget(text_edit)
         
         except Exception as e:
             text_edit = QTextEdit()

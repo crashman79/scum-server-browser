@@ -44,7 +44,7 @@ a = Analysis(
         'scipy.interpolate',
         'numpy',
         'darkdetect',
-    ] + pyqt6_hiddenimports + qt6_hiddenimports + sip_hiddenimports + collect_submodules('PyQt6'),
+    ] + pyqt6_hiddenimports + qt6_hiddenimports + sip_hiddenimports + collect_submodules('PyQt6') + collect_submodules('scum_tracker'),
     hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=[],
