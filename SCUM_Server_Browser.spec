@@ -45,6 +45,7 @@ a = Analysis(
         'scipy',
         'scipy.interpolate',
         'numpy',
+        'darkdetect',
     ] + pyqt6_hiddenimports + qt6_hiddenimports + sip_hiddenimports + collect_submodules('PyQt6'),
     hookspath=['hooks'],
     hooksconfig={},
