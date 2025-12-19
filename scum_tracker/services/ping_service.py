@@ -1,8 +1,7 @@
 """
 Ping service for measuring server latency
 """
-import subprocess
-import platform
+import socket
 from datetime import datetime
 from typing import Optional
 from scum_tracker.models.server import PingRecord
@@ -13,46 +12,36 @@ class PingService:
 
     @staticmethod
     def ping_server(ip: str, port: int) -> PingRecord:
-        """Ping a server and return latency"""
+        """Ping a server by attempting TCP connection to the game port"""
         try:
             start_time = datetime.now()
             
-            # Use platform-specific ping command
-            if platform.system() == "Windows":
-                cmd = f"ping -n 1 -w 1000 {ip}"
-            else:
-                cmd = f"ping -c 1 -W 1000 {ip}"
+            # Create socket and attempt connection
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)  # 2 second timeout
             
-            result = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                timeout=3
-            )
-            
-            latency = int((datetime.now() - start_time).total_seconds() * 1000)
-            
-            if result.returncode == 0:
+            try:
+                # Attempt to connect to the server's game port
+                sock.connect((ip, port))
+                latency = int((datetime.now() - start_time).total_seconds() * 1000)
+                sock.close()
+                
                 return PingRecord(
                     server_id="",  # Will be set by caller
                     latency=latency,
                     success=True
                 )
-            else:
+            except (socket.timeout, socket.error) as e:
+                latency = int((datetime.now() - start_time).total_seconds() * 1000)
                 return PingRecord(
                     server_id="",
-                    latency=latency,
+                    latency=latency if latency < 2000 else -1,
                     success=False,
-                    error_message="Server unreachable"
+                    error_message=f"Connection failed: {str(e)}"
                 )
+            finally:
+                sock.close()
         
-        except subprocess.TimeoutExpired:
-            return PingRecord(
-                server_id="",
-                latency=-1,
-                success=False,
-                error_message="Ping timeout"
-            )
         except Exception as e:
             return PingRecord(
                 server_id="",
