@@ -935,9 +935,11 @@ class MainWindow(QMainWindow):
         # Ping servers in batches to avoid overwhelming the system
         self.total_pings = len(self.servers)
         self.pings_completed = 0
-        self._ping_batch(0, batch_size)
         
-        # Don't use periodic updates - just wait for all pings to complete then rebuild table once
+        # Start periodic display updates to show pings in real-time
+        self.display_update_timer.start(250)  # Update every 250ms for smooth real-time updates
+        
+        self._ping_batch(0, batch_size)
 
     def _ping_batch(self, start_idx: int, batch_size: int):
         """Ping a batch of servers"""
@@ -979,10 +981,13 @@ class MainWindow(QMainWindow):
         
         self.pings_completed += 1
         
-        # Re-enable refresh button and stop periodic updates when all pings are done
+        # Update status message in real-time
+        self.status_message.setText(f"Pinging servers... {self.pings_completed}/{self.total_pings}")
+        
+        # When all pings are done, stop timer and do final refresh
         if self.pings_completed >= self.total_pings:
             self.display_update_timer.stop()
-            self.filter_servers()  # Final update
+            self.filter_servers()  # Final update with sorting
             self.refresh_btn.setEnabled(True)
             self.refresh_btn.setText("Refresh")
             self.status_message.setText(f"Loaded {len(self.servers)} servers")
