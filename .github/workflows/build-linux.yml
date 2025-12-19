@@ -1,0 +1,57 @@
+name: Build Linux Executable
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+      
+      - name: Build executable
+        run: python -m PyInstaller SCUM_Server_Browser.spec
+      
+      - name: Create distribution package
+        run: |
+          cd dist
+          tar -czf SCUM_Server_Browser-Linux.tar.gz SCUM_Server_Browser
+          sha256sum SCUM_Server_Browser-Linux.tar.gz > SCUM_Server_Browser-Linux.sha256
+          cd ..
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SCUM_Server_Browser-Linux
+          path: dist/SCUM_Server_Browser
+      
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SCUM_Server_Browser-Linux-Package
+          path: |
+            dist/SCUM_Server_Browser-Linux.tar.gz
+            dist/SCUM_Server_Browser-Linux.sha256
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/SCUM_Server_Browser-Linux.tar.gz
+            dist/SCUM_Server_Browser-Linux.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
