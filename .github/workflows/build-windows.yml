@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements-build.txt
       
       - name: Build executable
-        run: python -m PyInstaller SCUM_Server_Browser.spec
+        run: python -m PyInstaller --collect-all PyQt6 --collect-all PyQt6-Qt6 --collect-all PyQt6-sip SCUM_Server_Browser.spec
       
       - name: Create distribution package
         run: |

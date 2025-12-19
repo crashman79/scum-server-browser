@@ -29,7 +29,7 @@ rm -rf build dist *.spec.bak
 
 # Build executable
 echo "🔨 Building executable..."
-python -m PyInstaller SCUM_Server_Browser.spec
+python -m PyInstaller --collect-all PyQt6 --collect-all PyQt6-Qt6 --collect-all PyQt6-sip SCUM_Server_Browser.spec
 
 echo ""
 echo "================================================"
