@@ -1366,13 +1366,22 @@ class MainWindow(QMainWindow):
                     x = np.arange(len(averaged_latencies))
                     y = np.array(averaged_latencies)
                     
-                    # Create spline with smoothing on the averaged data
-                    spl = make_interp_spline(x, y, k=3)
-                    x_smooth = np.linspace(x.min(), x.max(), 300)
-                    y_smooth = spl(x_smooth)
-                    
-                    # Plot the smooth curve with theme color
-                    ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
+                    # Create spline with smoothing on the averaged data (requires at least k+1 points)
+                    if len(averaged_latencies) >= 4:
+                        # Use cubic spline for smooth curve (k=3)
+                        spl = make_interp_spline(x, y, k=3)
+                        x_smooth = np.linspace(x.min(), x.max(), 300)
+                        y_smooth = spl(x_smooth)
+                        ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
+                    elif len(averaged_latencies) >= 3:
+                        # Use quadratic spline for fewer points (k=2)
+                        spl = make_interp_spline(x, y, k=2)
+                        x_smooth = np.linspace(x.min(), x.max(), 100)
+                        y_smooth = spl(x_smooth)
+                        ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
+                    else:
+                        # For 1-2 points, just plot raw data with markers
+                        ax.plot(x, y, marker='o', linestyle='-', linewidth=2, markersize=8, color=line_color)
                     
                     # Normalize y-axis so small variations don't create drastic jumps
                     min_latency = min(latencies)
