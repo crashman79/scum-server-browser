@@ -1,0 +1,107 @@
+name: Performance Issue
+description: Report slow performance, high resource usage, or freezing
+title: "[Performance]: "
+labels: ["performance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a performance issue! Details about your system and the specific problem will help us optimize.
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: Which version are you using?
+      options:
+        - Latest release
+        - v1.0.1
+        - v1.0.0
+        - Running from source
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running?
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux (Ubuntu/Debian)
+        - Linux (Arch/Manjaro)
+        - Linux (Other)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Performance Issue Type
+      description: What kind of performance problem are you experiencing?
+      options:
+        - Slow server loading
+        - Slow pinging
+        - High CPU usage
+        - High memory usage
+        - Application freezing/hanging
+        - Slow UI responsiveness
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue Description
+      description: Describe the performance problem in detail
+      placeholder: |
+        When I ping servers, it takes much longer than expected...
+        The application uses X% CPU when...
+    validations:
+      required: true
+
+  - type: input
+    id: server_count
+    attributes:
+      label: Number of Servers
+      description: Approximately how many servers are in your list?
+      placeholder: e.g., 50, 200, 500
+
+  - type: input
+    id: favorites_count
+    attributes:
+      label: Number of Favorites
+      description: How many servers do you have favorited?
+      placeholder: e.g., 5, 20, 100
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: What actions trigger the performance issue?
+      placeholder: |
+        1. Open the application
+        2. Click "Ping All"
+        3. Wait for...
+    validations:
+      required: true
+
+  - type: textarea
+    id: system_info
+    attributes:
+      label: System Information
+      description: CPU, RAM, and other relevant system specs
+      placeholder: |
+        CPU: Intel i5-9600K
+        RAM: 16GB
+        Storage: SSD/HDD
+        Network: Wired/WiFi
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other details, screenshots, or performance measurements
