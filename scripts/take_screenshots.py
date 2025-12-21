@@ -25,7 +25,6 @@ class ScreenshotCapture:
         print("  Creating QApplication...")
         self.app = QApplication(sys.argv)
         self.app.setApplicationName("SCUM Server Browser")
-        self.window = None
         self.screenshots_dir = Path(__file__).parent.parent / "screenshots"
         self.screenshots_dir.mkdir(exist_ok=True)
         print(f"  Screenshots directory: {self.screenshots_dir}")
@@ -41,30 +40,43 @@ class ScreenshotCapture:
         self.current_theme_index = 0
         print("  ScreenshotCapture initialized")
     
-    def capture_screenshot(self, theme: Theme, theme_name: str):
-        """Capture a screenshot with the given theme."""
-        print(f"\nCapturing {theme_name} theme screenshot...")
+    def capture_screenshots(self):
+        """Capture screenshots for all themes."""
+        print("\nCreating MainWindow...")
         
         try:
-            # Apply theme
-            print(f"  Applying {theme_name} theme...")
-            theme_service = ThemeService()
-            theme_service.save_theme(theme)
-            self.app.setStyleSheet(theme_service.get_stylesheet())
-            
-            # Create and show window
-            print("  Creating MainWindow...")
-            # Set environment variable to indicate screenshot mode
+            # Set screenshot mode
             os.environ['SCREENSHOT_MODE'] = '1'
+            
+            # Create window once
             self.window = MainWindow()
-            print("  Showing window...")
             self.window.show()
             
-            # Wait for window to render and servers to load, then capture
-            print("  Waiting for window to render and load...")
-            QTimer.singleShot(5000, lambda: self._take_screenshot(theme_name))
+            # Wait for initial load, then start capturing
+            print("Waiting for window to render and load...")
+            QTimer.singleShot(5000, self._capture_current_theme)
+            
         except Exception as e:
-            print(f"✗ Error in capture_screenshot: {e}")
+            print(f"✗ Error creating window: {e}")
+            import traceback
+            traceback.print_exc()
+            self.app.exit(1)
+    
+    def _capture_current_theme(self):
+        """Capture screenshot for current theme."""
+        try:
+            theme, theme_name = self.themes_to_capture[self.current_theme_index]
+            print(f"\nCapturing {theme_name} theme screenshot...")
+            
+            # Apply theme by calling the window's theme setter
+            print(f"  Applying {theme_name} theme...")
+            self.window._set_theme(theme)
+            
+            # Wait a moment for theme to apply, then take screenshot
+            QTimer.singleShot(1000, lambda: self._take_screenshot(theme_name))
+            
+        except Exception as e:
+            print(f"✗ Error in _capture_current_theme: {e}")
             import traceback
             traceback.print_exc()
             self.app.exit(1)
@@ -73,7 +85,7 @@ class ScreenshotCapture:
         """Take the actual screenshot after window is rendered."""
         try:
             # Check if we're running offscreen (headless)
-            is_offscreen = os.environ.get('QT_QPA_PLATFORM', '') == 'offscreen'
+            is_offscreen = os.environ.get('QT_QPA_PLATFORM', '') in ['offscreen', 'minimal']
             
             if is_offscreen:
                 # For offscreen rendering, render to pixmap directly
@@ -103,11 +115,8 @@ class ScreenshotCapture:
             # Move to next theme or quit
             self.current_theme_index += 1
             if self.current_theme_index < len(self.themes_to_capture):
-                # Hide and delete current window, then capture next theme
-                self.window.hide()
-                self.window.deleteLater()
-                self.window = None
-                QTimer.singleShot(500, self._capture_next)
+                # Capture next theme on same window
+                QTimer.singleShot(500, self._capture_current_theme)
             else:
                 print("\n✓ All screenshots captured successfully!")
                 # Close window and quit app
@@ -120,11 +129,6 @@ class ScreenshotCapture:
             traceback.print_exc()
             self.app.exit(1)
     
-    def _capture_next(self):
-        """Capture the next theme."""
-        theme, theme_name = self.themes_to_capture[self.current_theme_index]
-        self.capture_screenshot(theme, theme_name)
-    
     def run(self):
         """Run the screenshot capture process."""
         print(f"SCUM Server Browser Screenshot Capture")
@@ -133,9 +137,8 @@ class ScreenshotCapture:
         print(f"Output directory: {self.screenshots_dir}")
         print(f"Capturing {len(self.themes_to_capture)} screenshots...\n")
         
-        # Start with first theme
-        theme, theme_name = self.themes_to_capture[self.current_theme_index]
-        self.capture_screenshot(theme, theme_name)
+        # Start capturing
+        self.capture_screenshots()
         
         # Run application
         return self.app.exec()
