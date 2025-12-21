@@ -56,8 +56,23 @@ class ScreenshotCapture:
     def _take_screenshot(self, theme_name: str):
         """Take the actual screenshot after window is rendered."""
         try:
-            # Grab the window contents
-            pixmap = self.window.grab()
+            # Check if we're running offscreen (headless)
+            is_offscreen = os.environ.get('QT_QPA_PLATFORM', '') == 'offscreen'
+            
+            if is_offscreen:
+                # For offscreen rendering, render to pixmap directly
+                from PyQt6.QtGui import QPixmap, QPainter
+                
+                # Get window size
+                size = self.window.size()
+                pixmap = QPixmap(size)
+                
+                # Render window to pixmap
+                self.window.render(pixmap)
+                print(f"  Rendered offscreen: {size.width()}x{size.height()}")
+            else:
+                # Normal window grab for platforms with display
+                pixmap = self.window.grab()
             
             # Save screenshot with platform-specific name
             filename = f"screenshot-{self.platform_prefix}-{theme_name}.png"
@@ -67,6 +82,7 @@ class ScreenshotCapture:
                 print(f"✓ Saved: {filepath}")
             else:
                 print(f"✗ Failed to save: {filepath}")
+                raise Exception(f"Failed to save pixmap to {filepath}")
             
             # Close window
             self.window.close()
@@ -81,7 +97,9 @@ class ScreenshotCapture:
                 
         except Exception as e:
             print(f"✗ Error capturing screenshot: {e}")
-            self.app.quit()
+            import traceback
+            traceback.print_exc()
+            self.app.exit(1)
     
     def _capture_next(self):
         """Capture the next theme."""
@@ -92,6 +110,7 @@ class ScreenshotCapture:
         """Run the screenshot capture process."""
         print(f"SCUM Server Browser Screenshot Capture")
         print(f"Platform: {platform.system()}")
+        print(f"QT_QPA_PLATFORM: {os.environ.get('QT_QPA_PLATFORM', 'default')}")
         print(f"Output directory: {self.screenshots_dir}")
         print(f"Capturing {len(self.themes_to_capture)} screenshots...\n")
         
