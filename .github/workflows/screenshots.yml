@@ -74,14 +74,18 @@ jobs:
           pip install -r requirements.txt
       
       - name: Generate screenshots
+        timeout-minutes: 5
         run: |
+          echo "Starting screenshot generation..."
           python scripts/take_screenshots.py 2>&1 | Tee-Object -FilePath screenshot_log.txt
+          echo "Screenshot generation completed with exit code: $LASTEXITCODE"
           exit $LASTEXITCODE
         env:
           QT_QPA_PLATFORM: offscreen
           QT_DEBUG_PLUGINS: 1
           MPLBACKEND: Agg
           MPLCONFIGDIR: ${{ runner.temp }}/.matplotlib
+          PYTHONUNBUFFERED: 1
         continue-on-error: true
       
       - name: Upload screenshot log
