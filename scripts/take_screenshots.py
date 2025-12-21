@@ -100,15 +100,18 @@ class ScreenshotCapture:
                 print(f"✗ Failed to save: {filepath}")
                 raise Exception(f"Failed to save pixmap to {filepath}")
             
-            # Close window
-            self.window.close()
-            
             # Move to next theme or quit
             self.current_theme_index += 1
             if self.current_theme_index < len(self.themes_to_capture):
+                # Hide and delete current window, then capture next theme
+                self.window.hide()
+                self.window.deleteLater()
+                self.window = None
                 QTimer.singleShot(500, self._capture_next)
             else:
                 print("\n✓ All screenshots captured successfully!")
+                # Close window and quit app
+                self.window.close()
                 QTimer.singleShot(100, self.app.quit)
                 
         except Exception as e:
