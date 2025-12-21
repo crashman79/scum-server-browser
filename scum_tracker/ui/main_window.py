@@ -393,7 +393,7 @@ class MainWindow(QMainWindow):
         # Stop and wait for display worker thread to finish
         if self.display_worker and self.display_worker.isRunning():
             self.display_worker.terminate()  # Force terminate if needed
-            if not self.display_worker.wait(timeout=1000):  # Wait 1 second
+            if not self.display_worker.wait(1000):  # Wait 1 second
                 print("Warning: Display worker did not terminate cleanly")
         
         # Stop and wait for ping workers with proper cleanup
@@ -403,7 +403,7 @@ class MainWindow(QMainWindow):
         
         # Wait for all workers to finish
         for worker in active_workers:
-            worker.wait(timeout=500)  # Shorter timeout per worker
+            worker.wait(500)  # Shorter timeout per worker
         
         # Clear worker lists
         self.ping_workers.clear()
