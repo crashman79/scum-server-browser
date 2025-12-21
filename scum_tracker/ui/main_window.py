@@ -360,6 +360,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("SCUM Server Browser")
         self.setGeometry(100, 100, 1400, 900)
         
+        # Check if running in screenshot mode (skip heavy operations)
+        self.screenshot_mode = os.environ.get('SCREENSHOT_MODE', '0') == '1'
+        
         # Set application icon
         self._set_window_icon()
         
@@ -379,7 +382,10 @@ class MainWindow(QMainWindow):
         self.display_update_timer.timeout.connect(self._update_displayed_pings)
         
         self.init_ui()
-        self.load_servers()
+        
+        # Skip loading servers in screenshot mode
+        if not self.screenshot_mode:
+            self.load_servers()
 
     def closeEvent(self, event):
         """Clean up threads before closing"""

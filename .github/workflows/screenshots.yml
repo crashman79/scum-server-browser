@@ -76,7 +76,7 @@ jobs:
       - name: Generate screenshots
         run: python scripts/take_screenshots.py
         env:
-          QT_QPA_PLATFORM: offscreen
+          QT_QPA_PLATFORM: minimal
         continue-on-error: true
       
       - name: Check if screenshots were created
