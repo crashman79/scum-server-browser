@@ -74,10 +74,21 @@ jobs:
           pip install -r requirements.txt
       
       - name: Generate screenshots
-        run: python scripts/take_screenshots.py
+        run: |
+          python scripts/take_screenshots.py 2>&1 | Tee-Object -FilePath screenshot_log.txt
+          exit $LASTEXITCODE
         env:
-          QT_QPA_PLATFORM: minimal
+          QT_QPA_PLATFORM: offscreen
+          QT_DEBUG_PLUGINS: 1
         continue-on-error: true
+      
+      - name: Upload screenshot log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-screenshot-log
+          path: screenshot_log.txt
+          retention-days: 7
       
       - name: Check if screenshots were created
         id: check_screenshots
