@@ -57,78 +57,9 @@ jobs:
           path: screenshots/screenshot-linux-*.png
           retention-days: 30
 
-  screenshot-windows:
-    name: Generate Windows Screenshots
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
-      - name: Check Python and Qt environment
-        run: |
-          python --version
-          python -c "import sys; print('Python executable:', sys.executable)"
-          python -c "import PyQt6; print('PyQt6 version:', PyQt6.QtCore.PYQT_VERSION_STR)"
-          python -c "from PyQt6.QtWidgets import QApplication; print('QApplication import: OK')"
-          python -c "import os; os.environ['QT_QPA_PLATFORM']='offscreen'; from PyQt6.QtWidgets import QApplication; app=QApplication([]); print('QApplication with offscreen: OK')"
-        continue-on-error: true
-      
-      - name: Generate screenshots
-        timeout-minutes: 5
-        run: |
-          echo "Starting screenshot generation..."
-          python scripts/take_screenshots.py 2>&1 | Tee-Object -FilePath screenshot_log.txt
-          echo "Screenshot generation completed with exit code: $LASTEXITCODE"
-          exit $LASTEXITCODE
-        env:
-          QT_QPA_PLATFORM: offscreen
-          QT_DEBUG_PLUGINS: 1
-          MPLBACKEND: Agg
-          MPLCONFIGDIR: ${{ runner.temp }}/.matplotlib
-          PYTHONUNBUFFERED: 1
-        continue-on-error: true
-      
-      - name: Upload screenshot log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-screenshot-log
-          path: screenshot_log.txt
-          retention-days: 7
-          if-no-files-found: ignore
-      
-      - name: Check if screenshots were created
-        id: check_screenshots
-        shell: bash
-        run: |
-          if [ -f screenshots/screenshot-win-dark.png ] && [ -f screenshots/screenshot-win-light.png ]; then
-            echo "has_screenshots=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_screenshots=false" >> $GITHUB_OUTPUT
-            echo "Windows screenshots not generated - this is expected and may require further debugging"
-          fi
-      
-      - name: Upload Windows screenshots
-        if: steps.check_screenshots.outputs.has_screenshots == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots-windows
-          path: screenshots/screenshot-win-*.png
-          retention-days: 30
-
   commit-screenshots:
     name: Commit Screenshots to Repository
-    needs: [screenshot-linux, screenshot-windows]
-    if: always()
+    needs: [screenshot-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -140,20 +71,11 @@ jobs:
         with:
           name: screenshots-linux
           path: screenshots-linux
-        continue-on-error: true
-      
-      - name: Download Windows screenshots
-        uses: actions/download-artifact@v4
-        with:
-          name: screenshots-windows
-          path: screenshots-windows
-        continue-on-error: true
       
       - name: Move screenshots to repository
         run: |
           mkdir -p screenshots
-          cp screenshots-linux/*.png screenshots/ || true
-          cp screenshots-windows/*.png screenshots/ || true
+          cp screenshots-linux/*.png screenshots/
           ls -lh screenshots/
       
       - name: Check for changes
@@ -173,10 +95,9 @@ jobs:
         run: |
           git commit -m "chore: update automated screenshots
 
-          Generated screenshots for both Linux and Windows platforms in light and dark themes.
+          Generated Linux screenshots in light and dark themes.
           
-          - Linux: screenshot-linux-dark.png, screenshot-linux-light.png
-          - Windows: screenshot-win-dark.png, screenshot-win-light.png"
+          - Linux: screenshot-linux-dark.png, screenshot-linux-light.png"
           git push
       
       - name: No changes detected
