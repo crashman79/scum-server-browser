@@ -22,36 +22,50 @@ class ScreenshotCapture:
     """Captures application screenshots in different themes."""
     
     def __init__(self):
+        print("  Creating QApplication...")
         self.app = QApplication(sys.argv)
         self.app.setApplicationName("SCUM Server Browser")
         self.window = None
         self.screenshots_dir = Path(__file__).parent.parent / "screenshots"
         self.screenshots_dir.mkdir(exist_ok=True)
+        print(f"  Screenshots directory: {self.screenshots_dir}")
         
         # Determine platform prefix
         self.platform_prefix = "win" if platform.system() == "Windows" else "linux"
+        print(f"  Platform prefix: {self.platform_prefix}")
         
         self.themes_to_capture = [
             (Theme.DARK, "dark"),
             (Theme.LIGHT, "light")
         ]
         self.current_theme_index = 0
+        print("  ScreenshotCapture initialized")
     
     def capture_screenshot(self, theme: Theme, theme_name: str):
         """Capture a screenshot with the given theme."""
-        print(f"Capturing {theme_name} theme screenshot...")
+        print(f"\nCapturing {theme_name} theme screenshot...")
         
-        # Apply theme
-        theme_service = ThemeService()
-        theme_service.save_theme(theme)
-        self.app.setStyleSheet(theme_service.get_stylesheet())
-        
-        # Create and show window
-        self.window = MainWindow()
-        self.window.show()
-        
-        # Wait for window to render, then capture
-        QTimer.singleShot(2000, lambda: self._take_screenshot(theme_name))
+        try:
+            # Apply theme
+            print(f"  Applying {theme_name} theme...")
+            theme_service = ThemeService()
+            theme_service.save_theme(theme)
+            self.app.setStyleSheet(theme_service.get_stylesheet())
+            
+            # Create and show window
+            print("  Creating MainWindow...")
+            self.window = MainWindow()
+            print("  Showing window...")
+            self.window.show()
+            
+            # Wait for window to render, then capture
+            print("  Waiting for window to render...")
+            QTimer.singleShot(2000, lambda: self._take_screenshot(theme_name))
+        except Exception as e:
+            print(f"✗ Error in capture_screenshot: {e}")
+            import traceback
+            traceback.print_exc()
+            self.app.exit(1)
     
     def _take_screenshot(self, theme_name: str):
         """Take the actual screenshot after window is rendered."""
@@ -124,14 +138,23 @@ class ScreenshotCapture:
 
 def main():
     """Main entry point."""
+    print("Starting screenshot capture script...")
+    print(f"Python version: {sys.version}")
+    print(f"Platform: {platform.system()}")
+    print(f"QT_QPA_PLATFORM: {os.environ.get('QT_QPA_PLATFORM', 'not set')}")
+    
     try:
+        print("\nInitializing ScreenshotCapture...")
         capture = ScreenshotCapture()
-        sys.exit(capture.run())
+        print("Running capture...")
+        result = capture.run()
+        print(f"Capture completed with result: {result}")
+        sys.exit(result)
     except KeyboardInterrupt:
         print("\n\nScreenshot capture cancelled.")
         sys.exit(1)
     except Exception as e:
-        print(f"\n✗ Error: {e}")
+        print(f"\n✗ Fatal error in main: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
