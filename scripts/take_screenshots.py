@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap
-from scum_tracker.ui.main_window import MainWindowabout:blank#blocked
+from scum_tracker.ui.main_window import MainWindow
 from scum_tracker.services.theme_service import ThemeService, Theme
 
 
@@ -60,9 +60,9 @@ class ScreenshotCapture:
             print("  Showing window...")
             self.window.show()
             
-            # Wait for window to render, then capture
-            print("  Waiting for window to render...")
-            QTimer.singleShot(3000, lambda: self._take_screenshot(theme_name))
+            # Wait for window to render and servers to load, then capture
+            print("  Waiting for window to render and load...")
+            QTimer.singleShot(5000, lambda: self._take_screenshot(theme_name))
         except Exception as e:
             print(f"✗ Error in capture_screenshot: {e}")
             import traceback

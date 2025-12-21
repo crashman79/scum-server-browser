@@ -360,7 +360,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("SCUM Server Browser")
         self.setGeometry(100, 100, 1400, 900)
         
-        # Check if running in screenshot mode (skip heavy operations)
+        # Check if running in screenshot mode
         self.screenshot_mode = os.environ.get('SCREENSHOT_MODE', '0') == '1'
         
         # Set application icon
@@ -383,9 +383,8 @@ class MainWindow(QMainWindow):
         
         self.init_ui()
         
-        # Skip loading servers in screenshot mode
-        if not self.screenshot_mode:
-            self.load_servers()
+        # Always load servers (screenshot mode just won't auto-ping them)
+        self.load_servers()
 
     def closeEvent(self, event):
         """Clean up threads before closing"""
@@ -926,7 +925,10 @@ class MainWindow(QMainWindow):
         self.status_message.setText(f"Loaded {len(servers)} servers | Pinging...")
         
         self.filter_servers()
-        self._start_pinging()
+        
+        # Skip auto-ping in screenshot mode
+        if not self.screenshot_mode:
+            self._start_pinging()
 
     def _populate_country_filters(self):
         """Populate region filter checkboxes - disabled since region selector removed"""
