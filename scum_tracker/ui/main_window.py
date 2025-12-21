@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
         # Stop fetch worker if running
         if self.fetch_worker and self.fetch_worker.isRunning():
             self.fetch_worker.terminate()
-            self.fetch_worker.wait(timeout=1000)
+            self.fetch_worker.wait(1000)
         
         super().closeEvent(event)
 
