@@ -80,6 +80,8 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           QT_DEBUG_PLUGINS: 1
+          MPLBACKEND: Agg
+          MPLCONFIGDIR: ${{ runner.temp }}/.matplotlib
         continue-on-error: true
       
       - name: Upload screenshot log
