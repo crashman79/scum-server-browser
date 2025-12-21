@@ -73,6 +73,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Check Python and Qt environment
+        run: |
+          python --version
+          python -c "import sys; print('Python executable:', sys.executable)"
+          python -c "import PyQt6; print('PyQt6 version:', PyQt6.QtCore.PYQT_VERSION_STR)"
+          python -c "from PyQt6.QtWidgets import QApplication; print('QApplication import: OK')"
+          python -c "import os; os.environ['QT_QPA_PLATFORM']='offscreen'; from PyQt6.QtWidgets import QApplication; app=QApplication([]); print('QApplication with offscreen: OK')"
+        continue-on-error: true
+      
       - name: Generate screenshots
         timeout-minutes: 5
         run: |
@@ -95,6 +104,7 @@ jobs:
           name: windows-screenshot-log
           path: screenshot_log.txt
           retention-days: 7
+          if-no-files-found: ignore
       
       - name: Check if screenshots were created
         id: check_screenshots
