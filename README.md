@@ -145,3 +145,7 @@ MIT License - See [LICENSE](LICENSE) for details
 ## 🤝 Contributing
 
 Contributions welcome! Please open an [Issue](https://github.com/crashman79/scum-server-browser/issues) or submit a Pull Request.
+
+---
+
+<sub>Development assisted by AI tools including GitHub Copilot and Claude.</sub>
