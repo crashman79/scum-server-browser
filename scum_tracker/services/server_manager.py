@@ -34,6 +34,7 @@ from urllib3.util.retry import Retry
 from typing import List
 from scum_tracker.models.server import GameServer
 import uuid
+import a2s
 
 
 class ServerManager:
@@ -195,3 +196,30 @@ class ServerManager:
             )
             servers.append(server)
         return servers
+    
+    @staticmethod
+    def query_server_realtime(ip: str, port: int) -> dict:
+        """
+        Query a server directly using A2S protocol for real-time info.
+        This bypasses BattleMetrics and gets data straight from the game server.
+        
+        Args:
+            ip: Server IP address
+            port: Server port
+            
+        Returns:
+            dict with server info or None if query fails
+        """
+        try:
+            info = a2s.info((ip, port), timeout=3.0)
+            return {
+                'name': info.server_name,
+                'players': info.player_count,
+                'max_players': info.max_players,
+                'map': info.map_name,
+                'version': info.version,
+                'game': info.game,
+            }
+        except Exception as e:
+            print(f"A2S query failed for {ip}:{port}: {e}")
+            return None

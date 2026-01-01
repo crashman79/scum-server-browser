@@ -17,7 +17,7 @@ matplotlib.use('Qt5Agg')  # Set backend before importing pyplot
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from scipy.interpolate import make_interp_spline
+from scipy.interpolate import make_interp_spline, UnivariateSpline
 import numpy as np
 import subprocess
 import platform
@@ -28,6 +28,7 @@ from scum_tracker.models.database import Database
 from scum_tracker.services.server_manager import ServerManager
 from scum_tracker.services.ping_service import PingService
 from scum_tracker.services.theme_service import ThemeService, Theme
+from scum_tracker.services.desktop_integration import DesktopIntegration
 
 # Country to continent mapping
 COUNTRY_TO_CONTINENT = {
@@ -381,10 +382,20 @@ class MainWindow(QMainWindow):
         self.display_update_timer = QTimer()
         self.display_update_timer.timeout.connect(self._update_displayed_pings)
         
+        # Delay auto-refresh slightly to let UI fully load
+        self.auto_refresh_timer = QTimer()
+        self.auto_refresh_timer.setSingleShot(True)
+        self.auto_refresh_timer.timeout.connect(self._delayed_auto_refresh)
+        
         self.init_ui()
         
         # Always load servers (screenshot mode just won't auto-ping them)
         self.load_servers()
+    
+    def _delayed_auto_refresh(self):
+        """Delayed auto-refresh to avoid blocking UI on startup"""
+        if not self.screenshot_mode:
+            self._start_pinging()
 
     def closeEvent(self, event):
         """Clean up threads before closing"""
@@ -446,6 +457,86 @@ class MainWindow(QMainWindow):
         )
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
+    
+    def _create_menu_bar(self):
+        """Create menu bar with application actions"""
+        menubar = self.menuBar()
+        
+        # File menu
+        file_menu = menubar.addMenu("&File")
+        
+        # Linux desktop integration (only show on Linux)
+        if platform.system() == "Linux":
+            desktop_integration = DesktopIntegration()
+            
+            if desktop_integration.is_installed():
+                remove_action = QAction("&Remove Desktop Entry", self)
+                remove_action.triggered.connect(self._remove_desktop_entry)
+                file_menu.addAction(remove_action)
+            else:
+                install_action = QAction("&Create Desktop Entry", self)
+                install_action.setStatusTip("Add SCUM Server Browser to application menu")
+                install_action.triggered.connect(self._create_desktop_entry)
+                file_menu.addAction(install_action)
+            
+            file_menu.addSeparator()
+        
+        # Exit action
+        exit_action = QAction("E&xit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setStatusTip("Exit application")
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+        
+        # Help menu
+        help_menu = menubar.addMenu("&Help")
+        
+        about_action = QAction("&About", self)
+        about_action.triggered.connect(self._show_about_dialog)
+        help_menu.addAction(about_action)
+    
+    def _create_desktop_entry(self):
+        """Create desktop entry for Linux application menu"""
+        desktop_integration = DesktopIntegration()
+        success, message = desktop_integration.install_desktop_entry()
+        
+        if success:
+            QMessageBox.information(self, "Desktop Entry Created", message)
+            # Refresh menu to show "Remove" instead of "Create"
+            self.menuBar().clear()
+            self._create_menu_bar()
+        else:
+            QMessageBox.warning(self, "Failed to Create Desktop Entry", message)
+    
+    def _remove_desktop_entry(self):
+        """Remove desktop entry from Linux application menu"""
+        desktop_integration = DesktopIntegration()
+        success, message = desktop_integration.uninstall_desktop_entry()
+        
+        if success:
+            QMessageBox.information(self, "Desktop Entry Removed", message)
+            # Refresh menu to show "Create" instead of "Remove"
+            self.menuBar().clear()
+            self._create_menu_bar()
+        else:
+            QMessageBox.warning(self, "Failed to Remove Desktop Entry", message)
+    
+    def _show_about_dialog(self):
+        """Show about dialog"""
+        about_text = """<h2>SCUM Server Browser</h2>
+        <p>Version 1.0.1</p>
+        <p>A lightweight desktop application for tracking and pinging SCUM game servers.</p>
+        <p><b>Features:</b></p>
+        <ul>
+        <li>Real-time server discovery from BattleMetrics</li>
+        <li>Fast server pinging with latency monitoring</li>
+        <li>Favorites and advanced filtering</li>
+        <li>Ping history and statistics</li>
+        <li>Cross-platform (Windows & Linux)</li>
+        </ul>
+        <p><a href="https://github.com/crashman79/scum-server-browser">GitHub Repository</a></p>
+        """
+        QMessageBox.about(self, "About SCUM Server Browser", about_text)
 
     def _save_filter_settings(self):
         """Save current filter settings to database"""
@@ -482,6 +573,9 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialize UI components"""
+        # Create menu bar (Linux desktop integration)
+        self._create_menu_bar()
+        
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         
@@ -908,14 +1002,18 @@ class MainWindow(QMainWindow):
         return f"Build {build_id}"
 
     def load_servers(self):
-        """Load servers from BattleMetrics"""
-        self.refresh_btn.setEnabled(False)
-        self.refresh_btn.setText("Loading...")
-        self.status_message.setText("Fetching servers from BattleMetrics...")
+        """Load servers from Battledisplay them"""
+        self.servers = servers
+        self.refresh_btn.setEnabled(True)
+        self.refresh_btn.setText("Refresh")
+        self.status_message.setText(f"Loaded {len(servers)} servers")
         
-        self.fetch_worker = ServerFetchWorker(self.db)
-        self.fetch_worker.servers_fetched.connect(self._update_servers, Qt.ConnectionType.QueuedConnection)
-        self.fetch_worker.start()
+        # Display servers first, then ping after a short delay
+        self.filter_servers()
+        
+        # Start auto-ping after 500ms delay to let UI render
+        if not self.screenshot_mode:
+            self.auto_refresh_timer.start(500)
 
     def _update_servers(self, servers: List[GameServer]):
         """Update servers list and ping them"""
@@ -923,6 +1021,9 @@ class MainWindow(QMainWindow):
         self.refresh_btn.setEnabled(True)
         self.refresh_btn.setText("Refresh")
         self.status_message.setText(f"Loaded {len(servers)} servers | Pinging...")
+        
+        # Auto-ping on initial load
+        self._start_pinging()
         
         self.filter_servers()
         
@@ -1282,6 +1383,7 @@ class MainWindow(QMainWindow):
             min_lat = stats['min']
             max_lat = stats['max']
             avg_lat = stats['avg']
+            last_timestamp = stats.get('last_timestamp')
             
             # Helper function to get color based on latency
             def get_color_hex(lat):
@@ -1292,10 +1394,24 @@ class MainWindow(QMainWindow):
                 else:
                     return "#FF0000"  # Red
             
-            # Create HTML with color-coded values (only on the numbers)
-            preview_html = f'Min: <span style="color: {get_color_hex(min_lat)}; font-weight: bold;">{min_lat}ms</span>  ' \
-                          f'Max: <span style="color: {get_color_hex(max_lat)}; font-weight: bold;">{max_lat}ms</span>  ' \
-                          f'Avg: <span style="color: {get_color_hex(avg_lat)}; font-weight: bold;">{avg_lat:.0f}ms</span>'
+            # Calculate time since last ping (only if needed for display)
+            time_ago = ""
+            if last_timestamp:
+                delta = datetime.now() - last_timestamp
+                seconds = delta.total_seconds()
+                if seconds < 60:
+                    time_ago = f"{int(seconds)}s"
+                elif seconds < 3600:
+                    time_ago = f"{int(seconds / 60)}m"
+                else:
+                    time_ago = f"{int(seconds / 3600)}h"
+            
+            # Create simpler HTML - combine stats and time on one line
+            preview_html = f'<span style="color: {get_color_hex(min_lat)};">{min_lat}</span>/' \
+                          f'<span style="color: {get_color_hex(max_lat)};">{max_lat}</span>/' \
+                          f'<span style="color: {get_color_hex(avg_lat)};">{avg_lat:.0f}ms</span>'
+            if time_ago:
+                preview_html += f' <span style="color: #888;">({time_ago})</span>'
             
             label = QLabel(preview_html)
             label.setStyleSheet("font-size: 8px; padding: 1px;")
@@ -1349,13 +1465,28 @@ class MainWindow(QMainWindow):
         
         try:
             if history:
-                # Extract latency values and timestamps (filter out failed pings)
-                timestamps = []
-                latencies = []
+                # Extract all records including failed pings
+                all_timestamps = []
+                all_latencies = []
+                failed_timestamps = []
+                
                 for record in history:
+                    all_timestamps.append(record.timestamp)
                     if record.latency > 0:
-                        timestamps.append(record.timestamp)
-                        latencies.append(record.latency)
+                        all_latencies.append(record.latency)
+                    else:
+                        # Mark failed pings
+                        all_latencies.append(None)
+                        failed_timestamps.append(record.timestamp)
+                
+                # Reverse lists since database returns newest first (DESC order)
+                # but matplotlib needs chronological order (oldest to newest)
+                all_timestamps.reverse()
+                all_latencies.reverse()
+                
+                # Get successful pings for plotting the line
+                timestamps = [t for t, lat in zip(all_timestamps, all_latencies) if lat is not None]
+                latencies = [lat for lat in all_latencies if lat is not None]
                 
                 if latencies:
                     # Create figure and plot line graph
@@ -1389,8 +1520,8 @@ class MainWindow(QMainWindow):
                     fig.patch.set_facecolor(fig_bg_color)
                     ax.set_facecolor(ax_bg_color)
                     
-                    # Apply moving average to smooth the data
-                    window_size = max(5, len(latencies) // 20)  # Adaptive window size
+                    # Apply moving average to smooth the data with larger window
+                    window_size = max(10, len(latencies) // 15)  # Larger window for smoother curve
                     averaged_latencies = []
                     for i in range(len(latencies)):
                         start = max(0, i - window_size // 2)
@@ -1398,25 +1529,39 @@ class MainWindow(QMainWindow):
                         avg = sum(latencies[start:end]) / (end - start)
                         averaged_latencies.append(avg)
                     
-                    x = np.arange(len(averaged_latencies))
+                    # Convert timestamps to matplotlib date numbers for x-axis
+                    import matplotlib.dates as mdates
+                    from scipy.interpolate import UnivariateSpline
+                    x = mdates.date2num(timestamps)
                     y = np.array(averaged_latencies)
                     
-                    # Create spline with smoothing on the averaged data (requires at least k+1 points)
+                    # Use UnivariateSpline with smoothing parameter for less jittery curves
                     if len(averaged_latencies) >= 4:
-                        # Use cubic spline for smooth curve (k=3)
-                        spl = make_interp_spline(x, y, k=3)
+                        # Smoothing parameter: higher = smoother (0 = interpolation, no smoothing)
+                        s = len(averaged_latencies) * 0.5  # Adaptive smoothing
+                        spl = UnivariateSpline(x, y, s=s, k=3)
                         x_smooth = np.linspace(x.min(), x.max(), 300)
                         y_smooth = spl(x_smooth)
                         ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
                     elif len(averaged_latencies) >= 3:
-                        # Use quadratic spline for fewer points (k=2)
-                        spl = make_interp_spline(x, y, k=2)
+                        # Use quadratic spline for fewer points
+                        s = len(averaged_latencies) * 0.3
+                        spl = UnivariateSpline(x, y, s=s, k=2)
                         x_smooth = np.linspace(x.min(), x.max(), 100)
                         y_smooth = spl(x_smooth)
                         ax.plot(x_smooth, y_smooth, linestyle='-', linewidth=2, color=line_color)
                     else:
                         # For 1-2 points, just plot raw data with markers
                         ax.plot(x, y, marker='o', linestyle='-', linewidth=2, markersize=8, color=line_color)
+                    
+                    # Add markers for failed pings
+                    if failed_timestamps:
+                        failed_x = mdates.date2num(failed_timestamps)
+                        # Place markers at the top of the y-axis range
+                        failed_y = [max(latencies) * 1.1] * len(failed_x)
+                        ax.scatter(failed_x, failed_y, marker='x', s=100, color='red', 
+                                 label='Failed Pings', zorder=5, linewidths=2)
+                        ax.legend(loc='upper right', fontsize=9)
                     
                     # Normalize y-axis so small variations don't create drastic jumps
                     min_latency = min(latencies)
@@ -1427,10 +1572,14 @@ class MainWindow(QMainWindow):
                     ax.set_ylim(min_latency - padding, max_latency + padding)
                     
                     # Add labels and title with theme colors
-                    ax.set_xlabel('Time (samples)', fontsize=11, color=text_color)
+                    ax.set_xlabel('Time', fontsize=11, color=text_color)
                     ax.set_ylabel('Latency (ms)', fontsize=11, color=text_color)
                     ax.set_title('Ping Latency Over Time', fontsize=12, fontweight='bold', color=text_color)
                     ax.grid(True, alpha=0.3, color=text_color)
+                    
+                    # Format x-axis to show timestamps
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
+                    fig.autofmt_xdate()  # Auto-rotate date labels for better readability
                     
                     # Style axis ticks and spines
                     ax.tick_params(colors=text_color)

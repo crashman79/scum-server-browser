@@ -4,6 +4,7 @@
 PyQt6>=6.6.1
 requests>=2.31.0
 urllib3>=2.0.0
+python-a2s>=1.4.0
 
 # Charts and visualization
 matplotlib>=3.8.0

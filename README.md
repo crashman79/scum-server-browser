@@ -25,8 +25,44 @@ A lightweight desktop application for tracking and pinging SCUM game servers wit
 **Linux:**
 ```bash
 tar -xzf SCUM_Server_Browser-Linux.tar.gz
+cd SCUM_Server_Browser-Linux
+
+# Option 1: Run directly (portable)
 ./SCUM_Server_Browser
+
+# Option 2: Install to system (adds to application menu)
+./install.sh
+
+# Option 3: Self-install from GUI (File → Create Desktop Entry)
+# Run the app and use the menu option
+
+# Option 4: Self-install from command line
+./SCUM_Server_Browser --install-desktop
 ```
+
+The executable can create its own desktop entry! Use the GUI menu **File → Create Desktop Entry** or run with `--install-desktop` flag.
+
+### Install From Source (Linux)
+
+For development or to install from source with application menu integration:
+
+```bash
+# Clone or download the repository
+git clone https://github.com/crashman79/scum-server-browser.git
+cd scum-server-browser
+
+# Run the source installer
+./install.sh
+```
+
+This will:
+- Install to `~/.local/share/scum-server-browser`
+- Create a Python virtual environment with dependencies
+- Add `scum-server-browser` command to your PATH
+- Create an application menu entry (Games category)
+- Install application icons
+
+To uninstall: `~/.local/share/scum-server-browser/uninstall.sh`
 
 ### Run From Source
 

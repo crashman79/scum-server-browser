@@ -38,6 +38,36 @@ def _init_windows_optimizations():
 
 
 def main():
+    # Check for command-line arguments for desktop integration
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower()
+        
+        # Handle desktop integration commands on Linux
+        if platform.system() == "Linux":
+            from scum_tracker.services.desktop_integration import DesktopIntegration
+            desktop = DesktopIntegration()
+            
+            if arg in ['--install-desktop', '-i']:
+                success, message = desktop.install_desktop_entry()
+                print(message)
+                sys.exit(0 if success else 1)
+            elif arg in ['--uninstall-desktop', '-u']:
+                success, message = desktop.uninstall_desktop_entry()
+                print(message)
+                sys.exit(0 if success else 1)
+            elif arg in ['--help', '-h']:
+                print("SCUM Server Browser - Command Line Options")
+                print("")
+                print("Usage: scum-server-browser [OPTION]")
+                print("")
+                print("Options:")
+                print("  -i, --install-desktop    Install desktop entry (Linux only)")
+                print("  -u, --uninstall-desktop  Remove desktop entry (Linux only)")
+                print("  -h, --help               Show this help message")
+                print("")
+                print("Run without arguments to launch the GUI.")
+                sys.exit(0)
+    
     # Apply Windows-specific optimizations early
     _init_windows_optimizations()
     

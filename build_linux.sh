@@ -21,7 +21,7 @@ source .venv/bin/activate
 
 # Install build dependencies
 echo "📦 Installing build dependencies..."
-pip install -q -r requirements.txt requirements-build.txt
+pip install -q -r requirements.txt -r requirements-build.txt
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
@@ -31,17 +31,28 @@ rm -rf build dist *.spec.bak
 echo "🔨 Building executable..."
 python -m PyInstaller SCUM_Server_Browser.spec
 
+# Copy installer to dist
+echo "📋 Adding installer script..."
+cp install-standalone.sh dist/install.sh
+cp README.md dist/
+cp CHANGELOG.md dist/ 2>/dev/null || true
+chmod +x dist/install.sh
+
 echo ""
 echo "================================================"
 echo "✅ Build completed successfully!"
 echo "================================================"
 echo ""
-echo "📍 Executable location:"
+echo "📍 Build outputs:"
+echo "   ./dist/SCUM_Server_Browser (standalone executable)"
+echo "   ./dist/install.sh (Linux installer)"
+echo ""
+echo "🚀 To run the app directly:"
 echo "   ./dist/SCUM_Server_Browser"
 echo ""
-echo "🚀 To run the app:"
-echo "   ./dist/SCUM_Server_Browser"
+echo "📦 To install system-wide:"
+echo "   cd dist && ./install.sh"
 echo ""
-echo "📦 To distribute, zip the entire 'dist' folder:"
-echo "   zip -r SCUM_Server_Browser-Linux.zip dist/"
+echo "📦 To create distribution package:"
+echo "   tar -czf SCUM_Server_Browser-Linux.tar.gz -C dist ."
 echo ""

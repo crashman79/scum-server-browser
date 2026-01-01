@@ -87,8 +87,8 @@ class Database:
             
             conn.commit()
         
-        # Clean up old records on startup
-        self.cleanup_old_records(days=7)
+        # Clean up old records on startup (keep last 24 hours)
+        self.cleanup_old_records(days=1)
 
     def add_favorite(self, server_id: str, server_name: str) -> bool:
         """Add a server to favorites"""
@@ -185,16 +185,17 @@ class Database:
                 cursor = conn.cursor()
                 # Optimized query using indexes
                 cursor.execute(f"""
-                    SELECT server_id, latency FROM ping_history 
+                    SELECT server_id, latency, timestamp FROM ping_history 
                     WHERE latency > 0
                     ORDER BY server_id, timestamp DESC
                 """)
                 
                 current_server = None
                 latencies = []
+                last_timestamp = None
                 
                 for row in cursor.fetchall():
-                    server_id, latency = row
+                    server_id, latency, timestamp = row
                     
                     if server_id != current_server:
                         # Store stats for previous server
@@ -203,11 +204,13 @@ class Database:
                                 'min': min(latencies),
                                 'max': max(latencies),
                                 'avg': sum(latencies) / len(latencies),
-                                'count': len(latencies)
+                                'count': len(latencies),
+                                'last_timestamp': last_timestamp
                             }
                         
                         current_server = server_id
                         latencies = []
+                        last_timestamp = datetime.fromisoformat(timestamp) if timestamp else None
                     
                     if len(latencies) < limit:
                         latencies.append(latency)
@@ -218,7 +221,8 @@ class Database:
                         'min': min(latencies),
                         'max': max(latencies),
                         'avg': sum(latencies) / len(latencies),
-                        'count': len(latencies)
+                        'count': len(latencies),
+                        'last_timestamp': last_timestamp
                     }
             
             return stats
@@ -226,7 +230,7 @@ class Database:
             print(f"Error getting ping history stats: {e}")
             return {}
 
-    def cleanup_old_records(self, days: int = 7) -> int:
+    def cleanup_old_records(self, days: int = 1) -> int:
         """Delete ping records older than N days. Returns number of deleted records."""
         try:
             cutoff_date = datetime.now() - timedelta(days=days)
@@ -239,7 +243,8 @@ class Database:
                 deleted_count = cursor.rowcount
                 conn.commit()
                 if deleted_count > 0:
-                    print(f"Cleaned up {deleted_count} ping records older than {days} days")
+                    day_str = "day" if days == 1 else "days"
+                    print(f"Cleaned up {deleted_count} ping records older than {days} {day_str}")
                 return deleted_count
         except Exception as e:
             print(f"Error cleaning up old records: {e}")

@@ -23,10 +23,17 @@ jobs:
       - name: Build executable
         run: python -m PyInstaller SCUM_Server_Browser.spec
       
+      - name: Prepare distribution package
+        run: |
+          cp install-standalone.sh dist/install.sh
+          cp README.md dist/
+          cp CHANGELOG.md dist/ || true
+          chmod +x dist/install.sh
+      
       - name: Create distribution package
         run: |
           cd dist
-          tar -czf SCUM_Server_Browser-Linux.tar.gz SCUM_Server_Browser
+          tar -czf SCUM_Server_Browser-Linux.tar.gz SCUM_Server_Browser install.sh README.md CHANGELOG.md
           sha256sum SCUM_Server_Browser-Linux.tar.gz > SCUM_Server_Browser-Linux.sha256
           cd ..
       
